@@ -1,0 +1,136 @@
+<div class="container mx-auto p-4 sm:p-6 bg-white shadow-lg rounded-xl w-full max-w-2xl border border-gray-200">
+  <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700 mb-4 text-center">
+    Gdje danas ima janjetine na akciji?
+  </h1>
+  <p class="text-gray-600 mb-6 text-center text-base sm:text-lg">
+    Pronađite restorane, trgovine i mesnice s janjetinom u vašoj blizini!
+  </p>
+
+  <div class="mb-6 text-center text-sm text-gray-500">
+    <p>
+      <span class="font-semibold">Vaša lokacija:</span>
+      @if (userLocationText()) {
+        {{ userLocationText() }}
+      } @else {
+        Traženje lokacije...
+      }
+    </p>
+    <p class="text-xs text-red-500 italic mt-2">
+      Napomena: Funkcija "na akciji" je simulirana za demonstraciju i ne odražava stvarne popuste.
+      Popisi objekata i adrese su generirani i možda nisu stvarni.
+    </p>
+  </div>
+
+  <div id="map-container" class="w-full h-64 sm:h-80 md:h-96 bg-gray-200 rounded-lg mb-6 shadow-md border border-gray-300"></div>
+
+  <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center">
+      <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+      <p class="text-sm text-gray-700">Obavijesti su:
+        @if (notificationPermissionStatus() === 'granted') {
+          <span class="font-bold text-emerald-600">DOPUŠTENE</span>.
+        } @else if (notificationPermissionStatus() === 'denied') {
+          <span class="font-bold text-red-600">BLOKIRANE</span>.
+        } @else {
+          <span class="font-bold text-orange-600">NEPOZNATE</span>.
+        }
+      </p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-2">
+      @if (notificationPermissionStatus() !== 'granted') {
+        <button (click)="requestNotificationPermission()"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out">
+          Dopusti obavijesti
+        </button>
+      }
+      @if (notificationPermissionStatus() === 'granted') {
+        <button (click)="showDummyNotification()"
+                class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out">
+          Simuliraj novu ponudu
+        </button>
+      }
+    </div>
+  </div>
+  <p class="text-xs text-gray-500 italic text-center mb-6">
+    <span class="font-semibold">Napomena o obavijestima:</span> Ova je značajka simulirana. Prave obavijesti temeljene na lokaciji, novim ponudama i omiljenim trgovinama zahtijevale bi serversku podršku.
+  </p>
+
+
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-lg text-blue-700 animate-pulse">
+      <div class="w-10 h-10 border-4 border-t-4 border-blue-500 rounded-full animate-spin mb-3"></div>
+      <p class="text-lg font-semibold">Učitavanje ponuda janjetine...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+      <strong class="font-bold">Greška!</strong>
+      <span class="block sm:inline"> {{ error() }}</span>
+      <p class="mt-2 text-sm">
+        Molimo provjerite konzolu za detalje ili pokušajte ponovo kasnije.
+      </p>
+      <button (click)="searchRestaurants()"
+              class="mt-4 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-300 ease-in-out">
+        Pokušaj ponovo
+      </button>
+    </div>
+  }
+
+  @if (restaurants().length > 0) {
+    <div class="grid gap-4 sm:gap-6">
+      @for (restaurant of restaurants(); track restaurant.name; let i = $index) {
+        <div
+          [attr.id]="'restaurant-' + i"
+          (click)="onCardClick(restaurant.latitude, restaurant.longitude, 'restaurant-' + i, i)"
+          class="relative bg-white p-3 sm:p-4 rounded-lg shadow-md border border-gray-200 cursor-pointer transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.02]"
+          [class.ring-2]="highlightedRestaurantId() === 'restaurant-' + i"
+          [class.ring-indigo-500]="highlightedRestaurantId() === 'restaurant-' + i"
+          [class.shadow-indigo-200]="highlightedRestaurantId() === 'restaurant-' + i">
+
+          @if (restaurant.onSale) {
+            <div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">
+              AKCIJA
+            </div>
+          }
+
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+              <!-- Type Icon -->
+              @switch (restaurant.type) {
+                @case ('restaurant') {
+                  <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0c-.454-.303-.977-.454-1.5-.454V5.118a2.704 2.704 0 013 0 2.704 2.704 0 003 0 2.704 2.704 0 013 0 2.704 2.704 0 003 0v10.428zM5 20h14a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                }
+                @case ('store') {
+                  <svg class="w-8 h-8 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                }
+                @case ('butcher_shop') {
+                  <svg class="w-8 h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                }
+              }
+            </div>
+            <div class="flex-1">
+              <p class="font-bold text-base sm:text-lg text-indigo-800">{{ restaurant.name }}</p>
+              <p class="text-sm text-gray-600">{{ restaurant.address }}</p>
+              <p class="text-xs text-gray-500 capitalize mt-1">Tip: {{ restaurant.type.replace('_', ' ') }}</p>
+              @if (restaurant.onSale && restaurant.saleDescription) {
+                <div class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-md">
+                  <p class="text-sm font-semibold text-emerald-800">
+                    <span class="font-bold">Akcija:</span> {{ restaurant.saleDescription }}
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (!loading() && !error()) {
+    <div class="text-center py-8 px-4 bg-gray-50 rounded-lg">
+      <p class="text-lg text-gray-700">Nema pronađenih objekata.</p>
+      <p class="text-sm text-gray-500 mt-2">
+        Pokušajte ponovo ili provjerite jesu li usluge lokacije omogućene.
+      </p>
+    </div>
+  }
+</div>

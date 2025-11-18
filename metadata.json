@@ -1,0 +1,7 @@
+{
+  "name": "Janjetina Finder",
+  "description": "Finds restaurants in your current city that typically serve lamb, with a simulated 'on sale' status for demonstration purposes.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
